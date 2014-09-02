@@ -1,0 +1,1297 @@
+LD 0 0
+LD 0 1
+CALL init
+RTN
+
+FUNC init world undocumented
+VAR fruit_pos fruit_map h w
+  ; get_fruit_pos(world)
+  P world
+  CALL get_fruit_pos
+  SET fruit_pos
+
+  ; h = list_len(world.map)
+  P world
+  CAR
+  CALL list_len
+  SET h
+
+  ; w = list_len(car(world.map))
+  P world
+  CAR
+  CAR
+  CALL list_len
+  SET w
+
+  ; fruit_map = bfs_fruit(world, fruit_pos, h, w)
+  P world
+  P fruit_pos
+  P h
+  P w
+  CALL bfs_fruit
+  SET fruit_map
+
+  ; return <[0, fruit_map], step>
+  P 0
+  P fruit_map
+  P 0
+  CONS
+  CONS
+  P step
+  CONS
+RTN
+
+FUNC bfs_fruit world p0 h w
+VAR a p q pos di dj i j c
+  ; a = make_list(h, make_list(w, 123456789))
+  P h
+  P w
+  P 123456789
+  CALL make_list
+  CALL make_list
+  SET a
+
+  ; a[cdr(p0)][car(p0)] = 0
+  P a
+  P p0
+  CDR
+  P p0
+  CAR
+  P 0
+  CALL list_set2
+  SET a
+
+  ; q = [p0]
+  P p0
+  P 0
+  CONS
+  SET q
+
+  ; while (p >= 0)
+  DO
+    P 0
+    P p
+    CGT
+  BREAK
+    ; pos = p[q]
+    P q
+    P p
+    CALL list_idx
+    SET pos
+
+    ; di = [-1, 0, 1, 0]
+    P -1
+    P 0
+    P 1
+    P 0
+    P 0
+    CONS
+    CONS
+    CONS
+    CONS
+    SET di
+
+    ; dj = [0, 1, 0, -1]
+    P 0
+    P 1
+    P 0
+    P -1
+    P 0
+    CONS
+    CONS
+    CONS
+    CONS
+    SET dj
+
+    ; while (di)
+    DO
+      P di
+      ATOM
+    BREAK
+      ; j = car(pos) + car(dj)
+      P pos
+      CAR
+      P dj
+      CAR
+      ADD
+      SET j
+
+      ; i = cdr(pos) + car(di)
+      P pos
+      CDR
+      P di
+      CAR
+      ADD
+      SET i
+
+      ; di = cdr(di)
+      P di
+      CDR
+      SET di
+
+      ; dj = cdr(dj)
+      P dj
+      CDR
+      SET dj
+
+      ; c = world.map[i][j]
+      P world
+      CAR
+      P i
+      P j
+      CALL list_idx2
+      SET c
+      
+      ; if (c > 0)
+      P c
+      P 0
+      CGT
+      IF
+        ; if a[i][j] == 123456789
+        P a
+        P i
+        P j
+        CALL list_idx2
+        P 123456789
+        CEQ
+        IF
+          ; a[i][j] = a[cdr(pos)][car(pos)] + 1
+          P a
+          P i
+          P j
+          P a
+          P pos
+          CDR
+          P pos
+          CAR
+          CALL list_idx2
+          P 1
+          ADD
+          CALL list_set2
+          SET a
+
+          ; q = <<j, i>, q>
+          P j
+          P i
+          CONS
+          P q
+          CONS
+          SET q
+
+          ; p += 1
+          P p
+          P 1
+          ADD
+          SET p
+        ENDIF
+      ENDIF
+    LOOP
+
+    ; p -= 1
+    P p
+    P 1
+    SUB
+    SET p
+  LOOP
+  GET a
+RTN
+
+FUNC get_fruit_pos world
+VAR a b x y x0 y0
+  ; y = 0
+  P 0
+  SET y
+
+  ; for (b : world.map)
+  P world
+  CAR
+  SET a
+  DO
+    P a
+    ATOM
+  BREAK
+    P a
+    CAR
+    SET b
+
+    ; x = 0
+    P 0
+    SET x
+
+    ; for (c : b)
+    DO
+      P b
+      ATOM
+    BREAK
+      ; if (c == 4)
+      P b
+      CAR
+      P 4
+      CEQ
+      IF
+        ; x0 = x
+        P x
+        SET x0
+
+        ; y0 = y
+        P y
+        SET y0
+      ENDIF
+
+      ; x += 1
+      P x
+      P 1
+      ADD
+      SET x
+
+    ; end
+      P b
+      CDR
+      SET b
+    LOOP
+
+    ; y += 1
+    P y
+    P 1
+    ADD
+    SET y
+
+  ; end
+    P a
+    CDR
+    SET a
+  LOOP
+
+  ; return <x0, y0>
+  P x0
+  P y0
+  CONS
+RTN
+
+FUNC step state world
+VAR next_state dir ghosts_info neighbor
+  ; neighbor = get_neighbor(world.lm.pos)
+  P world
+  CDR
+  CAR
+  CDR
+  CAR
+  CALL get_neighbor
+  SET neighbor
+
+  ; ghosts_info = get_ghosts_info(world)
+  P world
+  CALL get_ghosts_info
+  SET ghosts_info
+
+  ; neighbor = remove_wall(world.map, neighbor)
+  P world
+  CAR
+  P neighbor
+  CALL remove_wall
+  SET neighbor
+
+  ; if (len(neighbor) != 1)
+  P neighbor
+  CDR
+  ATOM
+  IF
+  ELSE
+    ; neighbor = func0(neighbor, ghosts_info, world.lm.pow)
+    P neighbor
+    P ghosts_info
+    P world
+    CDR
+    CAR
+    CAR
+    CALL func0
+    SET neighbor
+
+    ; if (len(neighbor) != 1)
+    P neighbor
+    CDR
+    ATOM
+    IF
+    ELSE
+      ; neighbor = func1(neighbor, world, state)
+      P neighbor
+      P world
+      P state
+      CALL func1
+      SET neighbor
+
+      ; if (len(neighbor) != 1)
+      P neighbor
+      CDR
+      ATOM
+      IF
+      ELSE
+        ; neighbor = func2(neighbor, world, state)
+        P neighbor
+        P world
+        P state
+        CALL func2
+        SET neighbor
+      ENDIF
+    ENDIF
+  ENDIF
+
+  ; dir = cdr(list_idx(neighbor, rand(state) % list_len(neighbor)))
+  P neighbor
+  P state
+  CALL rand
+  SET next_state
+  P neighbor
+  CALL list_len
+  CALL mod
+  CALL list_idx
+  CDR
+  SET dir
+
+  ; return <next_state, dir>
+  P next_state
+  P dir
+  CONS
+RTN
+
+FUNC func2 neighbor world state
+VAR a ret1 ret2
+  P neighbor
+  SET a
+  DO
+    P a
+    ATOM
+  BREAK
+    P world
+    CAR
+    P a
+    CAR
+    CAR
+    CDR
+    P a
+    CAR
+    CAR
+    CAR
+    CALL list_idx2
+    CALL is_pill
+    IF
+      P a
+      CAR
+      P ret1
+      CONS
+      SET ret1
+    ELSE
+      P a
+      CAR
+      P ret2
+      CONS
+      SET ret2
+    ENDIF
+
+    P a
+    CDR
+    SET a
+  LOOP
+
+  ; if (!ret1)
+  P ret1
+  ATOM
+  IF
+    ; if (len(ret2) == 1)
+    P ret2
+    CDR
+    ATOM
+    IF
+      P ret2
+    ELSE
+      P ret2
+      P world
+      P state
+      CALL func3
+    ENDIF
+  ELSE
+    P ret1
+  ENDIF
+RTN
+
+FUNC func3 neighbor world state
+VAR a map ret score min_score
+  P world
+  CAR
+  CALL bfs_map
+  SET map
+  
+  P 123456789
+  SET min_score
+  
+  P neighbor
+  SET a
+  DO
+    P a
+    ATOM
+  BREAK
+    P map
+    P a
+    CAR
+    CAR
+    debug
+    CDR
+    P a
+    CAR
+    CAR
+    CAR
+    CALL list_idx2
+    debug
+    SET score
+
+    ; if (score < min_score)
+    P min_score
+    P score
+    CGT
+    IF
+      ; min_score = score
+      P score
+      SET min_score
+
+      ; ret = [car(a)]
+      P a
+      CAR
+      P 0
+      CONS
+      SET ret
+    ELSE
+      ; if (score == min_score)
+      P min_score
+      P score
+      CEQ
+      IF
+        ; ret = <car(a), ret>
+        P a
+        CAR
+        P ret
+        CONS
+        SET ret
+      ENDIF
+    ENDIF
+
+    P a
+    CDR
+    SET a
+  LOOP
+  P ret
+RTN
+
+FUNC is_pill x
+  P x
+  P 2
+  CEQ
+  P x
+  P 3
+  CEQ
+  ADD
+RTN
+
+FUNC func1 neighbor world state
+VAR a tmp ret min_score score
+  ; if (world.fruit == 0)
+  P world
+  CDR
+  CDR
+  CDR
+  P 0
+  CEQ
+  IF
+    ; return neighbor
+    P neighbor
+  ELSE
+    P 123456790
+    SET min_score
+
+    P neighbor
+    SET a
+
+    ; for (x : neighbor)
+    DO
+      P a
+      ATOM
+    BREAK
+      ; score = list_idx2(state.fruit_map, cdr(car(x)), car(car(x)))
+      P state
+      CDR
+      CAR
+      P a
+      CAR
+      CAR
+      CDR
+      P a
+      CAR
+      CAR
+      CAR
+      CALL list_idx2
+      SET score
+
+      ; if (score < min_score)
+      P min_score
+      P score
+      CGT
+      IF
+        ; min_score = score
+        P score
+        SET min_score
+
+        ; ret = [car(a)]
+        P a
+        CAR
+        P 0
+        CONS
+        SET ret
+      ELSE
+        ; if (score == min_score)
+        P min_score
+        P score
+        CEQ
+        IF
+          ; ret = <car(a), ret>
+          P a
+          CAR
+          P ret
+          CONS
+          SET ret
+        ENDIF
+      ENDIF
+
+      P a
+      CDR
+      SET a
+    LOOP
+
+    P ret
+  ENDIF
+RTN
+
+FUNC func0 neighbor ghosts_info pow
+VAR a ret min_score score
+  ; min_score = 123456789
+  P 123456789
+  SET min_score
+
+  ; for (x : neighbor)
+  P neighbor
+  SET a
+  DO
+    P a
+    ATOM
+  BREAK
+    P a
+    CAR
+    ; score = eval0(car(x), ghosts_info)
+    CAR
+    P ghosts_info
+    CALL eval0
+    SET score
+
+    ; if (pow > 700)
+    P pow
+    P 700
+    CGT
+    IF
+      ; score *= -1
+      P score
+      P -1
+      MUL
+      SET score
+    ENDIF
+
+    ; if (score < min_score)
+    P min_score
+    P score
+    CGT
+    IF
+      ; min_score = score
+      P score
+      SET min_score
+
+      ; ret = [x]
+      P a
+      CAR
+      P 0
+      CONS
+      SET ret
+    ELSE
+      ; if (score == min_score)
+      P min_score
+      P score
+      CEQ
+      IF
+        ; ret = <x, ret>
+        P a
+        CAR
+        P ret
+        CONS
+        SET ret
+      ENDIF
+    ENDIF
+
+    P a
+    CDR
+    SET a
+  LOOP
+
+  ; return ret
+  P ret
+RTN
+
+FUNC eval0 pos ghosts_info
+VAR r a t
+  ; r = -1
+  P -1
+  SET r
+
+  ; for (x : ghosts_info)
+  P ghosts_info
+  SET a
+  DO
+    P a
+    ATOM
+  BREAK
+    ; if (cdr(x) > r)
+    P a
+    CAR
+    CDR
+    P r
+    CGT
+    IF
+      ; if (car(x) == pos)
+      P a
+      CAR
+      CAR
+      P pos
+      CALL ceq_pair
+      IF
+        ; r = cdr(x)
+        P a
+        CAR
+        CDR
+        SET r
+      ENDIF
+    ENDIF
+
+    P a
+    CDR
+    SET a
+  LOOP
+
+  ; return r
+  P r
+RTN
+
+FUNC ceq_pair a b
+  ; return car(a) == car(b) && cdr(a) == cdr(b)
+  P a
+  CAR
+  P b
+  CAR
+  CEQ
+  P a
+  CDR
+  P b
+  CDR
+  CEQ
+  MUL
+RTN
+
+FUNC remove_wall map neighbor
+VAR a len x
+  ; for (x : neighbor)
+  P neighbor
+  SET a
+  DO
+    P a
+    ATOM
+  BREAK
+    P a
+    CAR
+    SET x
+
+    ; map[cdr(car(x))][car(car(x))]
+    P map
+    P x
+    CAR
+    CDR
+    P x
+    CAR
+    CAR
+    CALL list_idx2
+    P 0
+    CGT
+    IF
+      ; push x
+      P x
+
+      ; len += 1
+      P len
+      P 1
+      ADD
+      SET len
+    ENDIF
+
+    P a
+    CDR
+    SET a
+  LOOP
+
+  P 0
+
+  DO
+    P len
+    P 0
+    CEQ
+  BREAK
+    CONS
+
+    ; len -= 1
+    P len
+    P 1
+    SUB
+    SET len
+  LOOP
+RTN
+
+FUNC get_neighbor pos
+VAR i di dj
+  ; i = 0
+  P 0
+  SET i
+
+  ; di = [-1, 0, 1, 0]
+  P -1
+  P 0
+  P 1
+  P 0
+  P 0
+  CONS
+  CONS
+  CONS
+  CONS
+  SET di
+
+  ; dj = [0, 1, 0, -1]
+  P 0
+  P 1
+  P 0
+  P -1
+  P 0
+  CONS
+  CONS
+  CONS
+  CONS
+  SET dj
+
+  ; while (di)
+  DO
+    P di
+    ATOM
+  BREAK
+    ; push <<car(pos) + car(dj), cdr(pos) + car(di)>, i>
+    P pos
+    CAR
+    P dj
+    CAR
+    ADD
+    P pos
+    CDR
+    P di
+    CAR
+    ADD
+    CONS
+    P i
+    CONS
+
+    ; di = cdr(di)
+    P di
+    CDR
+    SET di
+
+    ; dj = cdr(dj)
+    P dj
+    CDR
+    SET dj
+
+    ; i += 1
+    P i
+    P 1
+    ADD
+    SET i
+  LOOP
+
+  P 0
+  CONS
+  CONS
+  CONS
+  CONS
+RTN
+
+FUNC get_ghosts_info world
+VAR a ghost info
+  ; for (ghost : world.ghosts)
+  P world
+  CDR
+  CDR
+  CAR
+  SET a
+  DO
+    P a
+    ATOM
+  BREAK
+    P a
+    CAR
+    SET ghost
+
+    ; if (ghost.mode < 2)
+    P 2
+    P ghost
+    CAR
+    CGT
+    IF
+      ; info = list_cat(dfs_ghost(world.map, ghost.pos, ghost.dir, 3), info)
+      P world
+      CAR
+      P ghost
+      CDR
+      CAR
+      P ghost
+      CDR
+      CDR
+      P 3
+      CALL dfs_ghost
+      P info
+      CALL list_cat
+      SET info
+    ENDIF
+
+    P a
+    CDR
+    SET a
+  LOOP
+
+  ; return info
+  P info
+RTN
+
+FUNC dfs_ghost map pos dir n
+VAR d di dj i j a a_len ng_dir ret
+  P pos
+  P n
+  CONS
+  P 0
+  CONS
+  SET ret
+
+  ; ng_dir = (dir + 2) % 4
+  P dir
+  P 2
+  ADD
+  P 4
+  CALL mod
+  SET ng_dir
+
+  ; if (n == 0)
+  P n
+  P 0
+  CEQ
+  IF
+  ELSE
+
+    ; di = [-1, 0, 1, 0]
+    P -1
+    P 0
+    P 1
+    P 0
+    P 0
+    CONS
+    CONS
+    CONS
+    CONS
+    SET di
+
+    ; dj = [0, 1, 0, -1]
+    P 0
+    P 1
+    P 0
+    P -1
+    P 0
+    CONS
+    CONS
+    CONS
+    CONS
+    SET dj
+
+    ; while (di)
+    DO
+      P di
+      ATOM
+    BREAK
+      ; j = car(pos) + car(dj)
+      P pos
+      CAR
+      P dj
+      CAR
+      ADD
+      SET j
+
+      ; i = cdr(pos) + car(di)
+      P pos
+      CDR
+      P di
+      CAR
+      ADD
+      SET i
+
+      ; if (map[i][j] > 0)
+      P map
+      P i
+      P j
+      CALL list_idx2
+      P 0
+      CGT
+      IF
+        ; a = <<<j, i>, d>, a>
+        P j
+        P i
+        CONS
+        P d
+        CONS
+        P a
+        CONS
+        SET a
+
+        ; a_len += 1
+        P a_len
+        P 1
+        ADD
+        SET a_len
+      ENDIF
+
+      ; di = cdr(di)
+      P di
+      CDR
+      SET di
+
+      ; dj = cdr(dj)
+      P dj
+      CDR
+      SET dj
+
+      ; d += 1
+      P d
+      P 1
+      ADD
+      SET d
+    LOOP
+
+    ; if (a_len == 1)
+    P a_len
+    P 1
+    CEQ
+    IF
+      ; ret = list_cat(dfs_ghost(map, car(car(a)), cdr(car(a)), n-1), ret)
+      P map
+      P a
+      CAR
+      CAR
+      P a
+      CAR
+      CDR
+      P n
+      P 1
+      SUB
+      CALL dfs_ghost
+
+      P ret
+      CALL list_cat
+      SET ret
+    ELSE
+      ; for (a)
+      DO
+        P a
+        ATOM
+      BREAK
+
+        ; if (cdr(car(a)) != ng_dir)
+        P a
+        CAR
+        CDR
+        P ng_dir
+        CEQ
+        IF
+        ELSE
+          ; ret = list_cat(dfs_ghost(map, car(car(a)), cdr(car(a)), n-1), ret)
+          P map
+          P a
+          CAR
+          CAR
+          P a
+          CAR
+          CDR
+          P n
+          P 1
+          SUB
+          CALL dfs_ghost
+
+          P ret
+          CALL list_cat
+          SET ret
+        ENDIF
+
+        P a
+        CDR
+        SET a
+      LOOP
+    ENDIF
+  ENDIF
+
+  ; return ret
+  P ret
+RTN
+
+FUNC bfs_map map
+VAR d a b c i j flag tmp
+  P map
+  CALL copy
+  SET a
+  DO
+    P flag
+  BREAK
+    P 1
+    SET flag
+
+    P a
+    SET b
+    P 0
+    SET i
+    DO
+      P b
+      ATOM
+    BREAK
+      P b
+      CAR
+      SET c
+      P 0
+      SET j
+      DO
+        P c
+        ATOM
+      BREAK
+        P c
+        CAR
+        P d
+        CEQ
+        IF
+
+          P a
+          P i
+          P 1
+          ADD
+          P j
+          CALL list_idx2
+          P 123456789
+          CEQ
+          IF
+            P a
+            P i
+            P 1
+            ADD
+            P j
+            P d
+            P 1
+            ADD
+            CALL list_set2
+            SET a
+            P 0
+            SET flag
+          ENDIF
+
+          P a
+          P i
+          P -1
+          ADD
+          P j
+          CALL list_idx2
+          P 123456789
+          CEQ
+          IF
+            P a
+            P i
+            P -1
+            ADD
+            P j
+            P d
+            P 1
+            ADD
+            CALL list_set2
+            SET a
+            P 0
+            SET flag
+          ENDIF
+
+          P a
+          P i
+          P j
+          P 1
+          ADD
+          CALL list_idx2
+          P 123456789
+          CEQ
+          IF
+            P a
+            P i
+            P j
+            P 1
+            ADD
+            P d
+            P 1
+            ADD
+            CALL list_set2
+            SET a
+            P 0
+            SET flag
+          ENDIF
+
+          P a
+          P i
+          P j
+          P -1
+          ADD
+          CALL list_idx2
+          P 123456789
+          CEQ
+          IF
+            P a
+            P i
+            P j
+            P -1
+            ADD
+            P d
+            P 1
+            ADD
+            CALL list_set2
+            SET a
+            P 0
+            SET flag
+          ENDIF
+
+        ENDIF
+        
+        P j
+        P 1
+        ADD
+        SET j
+        P c
+        CDR
+        SET c
+      LOOP
+      P i
+      P 1
+      ADD
+      SET i
+      P b
+      CDR
+      SET b
+    LOOP
+    
+    P d
+    P 1
+    ADD
+    SET d
+  LOOP
+  P a
+RTN
+
+FUNC copy map
+VAR a n
+  P map
+  SET a
+  DO
+    P a
+    ATOM
+  BREAK
+    P a
+    CAR
+    CALL copy1
+
+    P n
+    P 1
+    ADD
+    SET n
+
+    P a
+    CDR
+    SET a
+  LOOP
+
+  P 0
+
+  DO
+    P n
+    P 0
+    CEQ
+  BREAK
+    CONS
+
+    P n
+    P 1
+    SUB
+    SET n
+  LOOP
+RTN
+
+FUNC copy1 line
+VAR a n
+  P line
+  SET a
+  DO
+    P a
+    ATOM
+  BREAK
+    P a
+    CAR
+    P 0
+    CEQ
+    IF
+      P 987654321
+    ELSE
+      P a
+      CAR
+      CALL is_pill
+      IF
+        P 0
+      ELSE
+        P 123456789
+      ENDIF
+    ENDIF
+
+    P n
+    P 1
+    ADD
+    SET n
+
+    P a
+    CDR
+    SET a
+  LOOP
+
+  P 0
+
+  DO
+    P n
+    P 0
+    CEQ
+  BREAK
+    CONS
+
+    P n
+    P 1
+    SUB
+    SET n
+  LOOP
+RTN

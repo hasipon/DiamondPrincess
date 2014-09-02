@@ -1,0 +1,330 @@
+; list[x]
+FUNC list_idx list x
+VAR n
+  PUSH list
+  PUSH x
+  SET n
+  DO
+    LDC 0
+    GET n
+    CGTE
+  BREAK ; if (n <= 0) break;
+    GET n
+    LDC 1
+    SUB
+    SET n
+    CDR
+  LOOP
+  CAR
+RTN
+
+; list[x][y]
+FUNC list_idx2 list x y
+  PUSH list
+  PUSH x
+  CALL list_idx
+  PUSH y
+  CALL list_idx
+RTN
+
+; len(list)
+FUNC list_len list
+VAR a n
+  PUSH list
+  SET a
+  DO
+    GET a
+    ATOM
+  BREAK
+    GET a
+    CDR
+    SET a
+    GET n
+    LDC 1
+    ADD
+    SET n
+  LOOP
+  GET n
+RTN
+
+; take(list, n)
+FUNC list_take list n
+VAR m a
+  PUSH list
+  SET a
+  PUSH n
+  SET m
+  DO
+    LDC 0
+    GET m
+    CGTE
+  BREAK ; if (m <= 0) break;
+    GET a
+    CAR
+    GET a
+    CDR
+    SET a
+
+    GET m
+    LDC 1
+    SUB
+    SET m
+  LOOP
+  LDC 0
+  PUSH n
+  SET m
+  DO
+    LDC 0
+    GET m
+    CGTE
+  BREAK ; if (m <= 0) break;
+    CONS
+
+    GET m
+    LDC 1
+    SUB
+    SET m
+  LOOP
+RTN
+
+FUNC mod m n
+  PUSH m
+  PUSH m
+  PUSH n
+  DIV
+  PUSH n
+  MUL
+  SUB
+RTN
+
+; abs(x)
+FUNC abs x
+  PUSH x
+  LDC 0
+  CGTE
+  IF
+    PUSH x
+  ELSE
+    LDC 0
+    PUSH x
+    SUB
+  ENDIF
+RTN
+
+; manh(a, b)
+FUNC manh a b
+  PUSH a
+  CAR
+  PUSH b
+  CAR
+  SUB
+  CALL abs
+  PUSH a
+  CDR
+  PUSH b
+  CDR
+  SUB
+  CALL abs
+  ADD
+RTN
+
+FUNC debug_print x y
+  PUSH y
+  PUSH x
+  CONS
+  DBUG
+  PUSH x
+RTN
+
+; rand(AIState& s) : int
+FUNC rand s
+VAR t
+  ; t = s.seed * 1103515245 + 12345
+  P s
+  CAR
+  LDC 1103515245
+  MUL
+  LDC 12345
+  ADD
+  SET t
+
+  ; if (t < 0)
+  P 0
+  P t
+  CGT
+  IF
+    ; t += 2147483648
+    P t
+    P 2147483648
+    ADD
+    SET t
+  ENDIF
+  
+  ; return t / 32768
+  P t
+  P 32768
+  DIV
+
+  ; s.seed = t
+  P t
+  P s
+  CDR
+  CONS
+RTN
+
+FUNC make_list n v
+VAR i
+  ; i = n
+  P n
+  SET i
+
+  ; while (i > 0)
+  DO
+    P 0
+    P i
+    CGTE
+  BREAK
+    ; push v
+    P v
+
+    ; i -= 1
+    P i
+    P 1
+    SUB
+    SET i
+  LOOP
+  P 0
+
+  ; i = n
+  P n
+  SET i
+
+  ; while (i > 0)
+  DO
+    P 0
+    P i
+    CGTE
+  BREAK
+
+    CONS
+
+    ; i -= 1
+    P i
+    P 1
+    SUB
+    SET i
+  LOOP
+RTN
+
+; list[x] = v
+FUNC list_set list x v
+VAR a n
+  ; a = list
+  P list
+  SET a
+
+  ; n = x
+  P x
+  SET n
+
+  ; while (n > 0)
+  DO
+    P 0
+    P n
+    CGTE
+  BREAK
+    ; push car(a)
+    P a
+    CAR
+
+    ; a = cdr(a)
+    P a
+    CDR
+    SET a
+
+    ; n -= 1
+    P n
+    P 1
+    SUB
+    SET n
+  LOOP
+
+  ; push v
+  P v
+
+  ; push cdr(a)
+  P a
+  CDR
+
+  ; n = x
+  P x
+  SET n
+
+  ; while (n >= 0)
+  DO
+    P 0
+    P n
+    CGT
+  BREAK
+
+    CONS
+
+    ; n -= 1
+    P n
+    P 1
+    SUB
+    SET n
+  LOOP
+RTN
+
+; a[i][j] = k
+FUNC list_set2 a i j k
+  ; return list_set(a, i, list_set(list_idx(a, i), j, k))
+  P a
+  P i
+  P a
+  P i
+  CALL list_idx
+  P j
+  P k
+  CALL list_set
+  CALL list_set
+RTN
+
+FUNC list_cat a b
+VAR c n
+  P a
+  SET c
+  DO
+    P c
+    ATOM
+  BREAK
+    P c
+    CAR
+
+    P c
+    CDR
+    SET c
+
+    P n
+    P 1
+    ADD
+    SET n
+  LOOP
+
+  P b
+  DO
+    P 0
+    P n
+    CEQ
+  BREAK
+    CONS
+    SET c
+    P c
+
+    P n
+    P 1
+    SUB
+    SET n
+  LOOP
+RTN

@@ -1,0 +1,21 @@
+Build
+=====
+
+$ make
+
+
+Additional Instructions
+=======================
+
+FUNC funcname [argname ...]
+VAR [varname ...]
+CALL funcname
+PUSH argname
+GET varname
+SET varname
+IF
+ELSE
+ENDIF
+DO
+LOOP
+BREAK
